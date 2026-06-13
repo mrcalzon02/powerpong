@@ -41,6 +41,9 @@ jobs:
       - name: Build shaded executable JAR
         run: mvn --batch-mode --no-transfer-progress clean package
 
+      - name: Render gameplay smoke frame
+        run: java -Djava.awt.headless=true -cp target/powerpong.jar com.mrcalzon.powerpong.RenderSmokeCheck
+
       - name: Name platform artifact
         shell: bash
         run: cp target/powerpong.jar "target/powerpong-${{ matrix.label }}.jar"
