@@ -73,25 +73,33 @@ jobs:
         run: |
           $bundle = "build/release/PowerPong-Windows-x64"
           New-Item -ItemType Directory -Force -Path $bundle | Out-Null
-          Copy-Item -Recurse "build/app-image/PowerPong" "$bundle/PowerPong"
-          Copy-Item "target/powerpong.jar" "$bundle/PowerPong-Java17.jar"
+          Copy-Item -Path "build/app-image/PowerPong/*" -Destination $bundle -Recurse -Force
+          Copy-Item "target/powerpong.jar" "$bundle/PowerPong-Requires-Java17.jar"
+          @"
+          @echo off
+          cd /d "%~dp0"
+          start "" "%~dp0PowerPong.exe"
+          "@ | Set-Content -Encoding ASCII "$bundle/START-POWERPONG.bat"
           @"
           POWERPONG - WINDOWS X64
 
-          Recommended launch:
-            Open the PowerPong folder and double-click PowerPong.exe.
+          START HERE:
+            Double-click PowerPong.exe or START-POWERPONG.bat in this folder.
 
-          No separate Java installation is required for PowerPong.exe.
+          This package includes its own compatible Java runtime.
+          You do not need to install Java separately.
 
-          Alternate launch for users with Java 17 or newer:
-            java -jar PowerPong-Java17.jar
+          IMPORTANT:
+            Java 8, including jre-8u491-windows-x64, cannot launch this game JAR.
+            The fallback JAR requires Java 17 or newer and is deliberately named:
+            PowerPong-Requires-Java17.jar
 
           Controls:
             P-1: W / S
             P-2: Up Arrow / Down Arrow
             Pause: Space or P
             Menu: Escape
-          "@ | Set-Content -Encoding UTF8 "$bundle/README.txt"
+          "@ | Set-Content -Encoding UTF8 "$bundle/README-FIRST.txt"
           Compress-Archive -Path "$bundle/*" -DestinationPath "build/release/PowerPong-Windows-x64.zip" -Force
 
       - name: Assemble Linux package
@@ -101,7 +109,7 @@ jobs:
           bundle="build/release/PowerPong-Linux-x64"
           mkdir -p "$bundle"
           mv build/app-image/PowerPong "$bundle/PowerPong"
-          cp target/powerpong.jar "$bundle/PowerPong-Java17.jar"
+          cp target/powerpong.jar "$bundle/PowerPong-Requires-Java17.jar"
           cat > "$bundle/README.txt" <<'EOF'
           POWERPONG - LINUX X64
 
@@ -111,7 +119,7 @@ jobs:
           No separate Java installation is required for that launcher.
 
           Alternate launch for users with Java 17 or newer:
-            java -jar PowerPong-Java17.jar
+            java -jar PowerPong-Requires-Java17.jar
 
           Controls:
             P-1: W / S
@@ -128,7 +136,7 @@ jobs:
           bundle="build/release/PowerPong-${{ matrix.label }}"
           mkdir -p "$bundle"
           mv build/app-image/PowerPong.app "$bundle/PowerPong.app"
-          cp target/powerpong.jar "$bundle/PowerPong-Java17.jar"
+          cp target/powerpong.jar "$bundle/PowerPong-Requires-Java17.jar"
           cat > "$bundle/README.txt" <<'EOF'
           POWERPONG - MACOS
 
@@ -140,7 +148,7 @@ jobs:
           PowerPong.app and choosing Open the first time.
 
           Alternate launch for users with Java 17 or newer:
-            java -jar PowerPong-Java17.jar
+            java -jar PowerPong-Requires-Java17.jar
 
           Controls:
             P-1: W / S
@@ -183,12 +191,14 @@ jobs:
 
           Choose the archive matching your computer:
 
-          - `PowerPong-Windows-x64.zip` — open the `PowerPong` folder and run `PowerPong.exe`.
+          - `PowerPong-Windows-x64.zip` — extract it and run the top-level `PowerPong.exe` or `START-POWERPONG.bat`.
           - `PowerPong-Linux-x64.tar.gz` — run `PowerPong/bin/PowerPong`.
           - `PowerPong-macOS-x64.zip` — Intel Macs.
           - `PowerPong-macOS-arm64.zip` — Apple Silicon Macs.
 
-          The native launcher packages include their own Java runtime. A separate Java installation is not required. Each archive also contains `PowerPong-Java17.jar` for users who prefer launching the JAR manually.
+          The native launcher packages include their own Java runtime. A separate Java installation is not required.
+
+          The included fallback JAR is named `PowerPong-Requires-Java17.jar`. Java 8 cannot launch it; it requires Java 17 or newer.
 
           This rolling release is rebuilt whenever verified changes reach `main`.
           EOF
