@@ -34,6 +34,24 @@ public final class RenderSmokeCheck {
                     graphics.dispose();
                 }
 
+                int centerBallSamples = 0;
+                int centerX = frame.getWidth() / 2;
+                int centerY = (78 + 680) / 2;
+                for (int y = centerY - 22; y <= centerY + 22; y++) {
+                    for (int x = centerX - 22; x <= centerX + 22; x++) {
+                        int pixel = frame.getRGB(x, y);
+                        int red = (pixel >>> 16) & 0xFF;
+                        int green = (pixel >>> 8) & 0xFF;
+                        int blue = pixel & 0xFF;
+                        if (red + green + blue > 650) {
+                            centerBallSamples++;
+                        }
+                    }
+                }
+                if (centerBallSamples < 20) {
+                    throw new IllegalStateException("No visible ball was rendered at match start");
+                }
+
                 int illuminatedSamples = 0;
                 for (int y = 0; y < frame.getHeight(); y += 8) {
                     for (int x = 0; x < frame.getWidth(); x += 8) {

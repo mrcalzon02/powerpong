@@ -26,6 +26,7 @@ The fallback JAR is named `PowerPong-Requires-Java17.jar`. It requires Java 17 o
 ## Current gameplay
 
 - **1 VS AI** and **2 PLAYER** modes from the main menu.
+- A ball is visible immediately on the first gameplay frame and fires from arena center in a randomized left/right and vertical direction.
 - A pre-game configuration screen with a master power-up switch and individual power-up toggles.
 - Slow opening ball and paddle movement that accelerates throughout the match.
 - Three starting lives per side. Life pickups can raise the total to five.

@@ -121,8 +121,8 @@ final class GamePanel extends JPanel {
         left.reset();
         right.reset();
         nextPowerUpAt = 6.0 + random.nextDouble() * 3.0;
-        serveAt = 0.8;
         serveToward = random.nextBoolean() ? Side.LEFT : Side.RIGHT;
+        spawnServe(serveToward);
     }
 
     private void createStars() {
