@@ -1,0 +1,52 @@
+name: Build standalone JARs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            label: windows-x64
+          - os: ubuntu-latest
+            label: linux-x64
+          - os: macos-13
+            label: macos-x64
+          - os: macos-14
+            label: macos-arm64
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build shaded executable JAR
+        run: mvn --batch-mode --no-transfer-progress clean package
+
+      - name: Name platform artifact
+        shell: bash
+        run: cp target/powerpong.jar "target/powerpong-${{ matrix.label }}.jar"
+
+      - name: Upload standalone JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: powerpong-${{ matrix.label }}
+          path: target/powerpong-${{ matrix.label }}.jar
+          if-no-files-found: error
