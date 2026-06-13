@@ -1,0 +1,208 @@
+name: Package desktop releases
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Package ${{ matrix.label }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            label: Windows-x64
+          - os: ubuntu-latest
+            label: Linux-x64
+          - os: macos-15-intel
+            label: macOS-x64
+          - os: macos-15
+            label: macOS-arm64
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build executable JAR
+        run: mvn --batch-mode --no-transfer-progress clean package
+
+      - name: Verify packaged renderer
+        shell: bash
+        run: java -Djava.awt.headless=true -cp target/powerpong.jar com.mrcalzon.powerpong.RenderSmokeCheck
+
+      - name: Build self-contained application image
+        shell: bash
+        run: |
+          mkdir -p build/app-image build/release
+          platform_args=()
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            platform_args+=(--mac-package-identifier com.mrcalzon.powerpong)
+            platform_args+=(--mac-package-name PowerPong)
+          fi
+          jpackage \
+            --type app-image \
+            --input target \
+            --main-jar powerpong.jar \
+            --main-class com.mrcalzon.powerpong.PowerPongApp \
+            --name PowerPong \
+            --app-version 1.0.0 \
+            --vendor "PowerPong Project" \
+            --description "Neon science-fiction power-up Pong" \
+            --dest build/app-image \
+            --verbose \
+            "${platform_args[@]}"
+
+      - name: Assemble Windows package
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $bundle = "build/release/PowerPong-Windows-x64"
+          New-Item -ItemType Directory -Force -Path $bundle | Out-Null
+          Copy-Item -Recurse "build/app-image/PowerPong" "$bundle/PowerPong"
+          Copy-Item "target/powerpong.jar" "$bundle/PowerPong-Java17.jar"
+          @"
+          POWERPONG - WINDOWS X64
+
+          Recommended launch:
+            Open the PowerPong folder and double-click PowerPong.exe.
+
+          No separate Java installation is required for PowerPong.exe.
+
+          Alternate launch for users with Java 17 or newer:
+            java -jar PowerPong-Java17.jar
+
+          Controls:
+            P-1: W / S
+            P-2: Up Arrow / Down Arrow
+            Pause: Space or P
+            Menu: Escape
+          "@ | Set-Content -Encoding UTF8 "$bundle/README.txt"
+          Compress-Archive -Path "$bundle/*" -DestinationPath "build/release/PowerPong-Windows-x64.zip" -Force
+
+      - name: Assemble Linux package
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          bundle="build/release/PowerPong-Linux-x64"
+          mkdir -p "$bundle"
+          mv build/app-image/PowerPong "$bundle/PowerPong"
+          cp target/powerpong.jar "$bundle/PowerPong-Java17.jar"
+          cat > "$bundle/README.txt" <<'EOF'
+          POWERPONG - LINUX X64
+
+          Recommended launch:
+            Run PowerPong/bin/PowerPong
+
+          No separate Java installation is required for that launcher.
+
+          Alternate launch for users with Java 17 or newer:
+            java -jar PowerPong-Java17.jar
+
+          Controls:
+            P-1: W / S
+            P-2: Up Arrow / Down Arrow
+            Pause: Space or P
+            Menu: Escape
+          EOF
+          tar -C build/release -czf build/release/PowerPong-Linux-x64.tar.gz PowerPong-Linux-x64
+
+      - name: Assemble macOS package
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          bundle="build/release/PowerPong-${{ matrix.label }}"
+          mkdir -p "$bundle"
+          mv build/app-image/PowerPong.app "$bundle/PowerPong.app"
+          cp target/powerpong.jar "$bundle/PowerPong-Java17.jar"
+          cat > "$bundle/README.txt" <<'EOF'
+          POWERPONG - MACOS
+
+          Recommended launch:
+            Open PowerPong.app.
+
+          No separate Java installation is required for the application bundle.
+          Because this early build is unsigned, macOS may require Control-clicking
+          PowerPong.app and choosing Open the first time.
+
+          Alternate launch for users with Java 17 or newer:
+            java -jar PowerPong-Java17.jar
+
+          Controls:
+            P-1: W / S
+            P-2: Up Arrow / Down Arrow
+            Pause: Space or P
+            Menu: Escape
+          EOF
+          ditto -c -k --sequesterRsrc --keepParent "$bundle" "build/release/PowerPong-${{ matrix.label }}.zip"
+
+      - name: Upload release package
+        uses: actions/upload-artifact@v7
+        with:
+          name: PowerPong-${{ matrix.label }}
+          path: |
+            build/release/*.zip
+            build/release/*.tar.gz
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    name: Publish rolling GitHub release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download packaged applications
+        uses: actions/download-artifact@v5
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Write release notes
+        shell: bash
+        run: |
+          cat > release-notes.md <<'EOF'
+          # PowerPong desktop builds
+
+          These are prebuilt, self-contained PowerPong packages.
+
+          Choose the archive matching your computer:
+
+          - `PowerPong-Windows-x64.zip` — open the `PowerPong` folder and run `PowerPong.exe`.
+          - `PowerPong-Linux-x64.tar.gz` — run `PowerPong/bin/PowerPong`.
+          - `PowerPong-macOS-x64.zip` — Intel Macs.
+          - `PowerPong-macOS-arm64.zip` — Apple Silicon Macs.
+
+          The native launcher packages include their own Java runtime. A separate Java installation is not required. Each archive also contains `PowerPong-Java17.jar` for users who prefer launching the JAR manually.
+
+          This rolling release is rebuilt whenever verified changes reach `main`.
+          EOF
+
+      - name: Publish direct-download release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release delete powerpong-desktop-latest --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes || true
+          gh release create powerpong-desktop-latest \
+            release-assets/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "PowerPong Desktop Builds" \
+            --notes-file release-notes.md \
+            --latest

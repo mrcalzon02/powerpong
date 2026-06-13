@@ -4,6 +4,25 @@ PowerPong is a Java 17 Swing arcade game built around deliberately readable move
 
 LWJGL is used for generated OpenAL sound effects. The game remains playable if an audio device is unavailable; it automatically falls back to silent mode instead of failing to launch.
 
+## Download and play
+
+The rolling **PowerPong Desktop Builds** GitHub Release provides prebuilt packages for:
+
+- Windows x64
+- Linux x64
+- Intel macOS
+- Apple Silicon macOS
+
+The recommended desktop package includes its own Java runtime. Players do not need to install Java separately.
+
+After extracting the package:
+
+- **Windows:** open the `PowerPong` folder and run `PowerPong.exe`.
+- **Linux:** run `PowerPong/bin/PowerPong`.
+- **macOS:** open `PowerPong.app`.
+
+Each package also includes `PowerPong-Java17.jar` for users who prefer the traditional JAR. The direct-download release is rebuilt automatically whenever verified changes reach `main`.
+
 ## Current gameplay
 
 - **1 VS AI** and **2 PLAYER** modes from the main menu.
@@ -22,7 +41,7 @@ LWJGL is used for generated OpenAL sound effects. The game remains playable if a
 | Ball Control | For eight seconds, the owner's paddle movement bends outgoing balls. |
 | Multi Ball | Splits the collecting ball into a three-ball attack. |
 | Life | Restores one life, up to five. |
-| Freeze Ball | Charges the owner's next return to hold at the paddle briefly before release. |
+| Freeze Ball | Charges the owner's next return to hold the ball briefly before release. |
 
 ## Controls
 
@@ -36,7 +55,7 @@ LWJGL is used for generated OpenAL sound effects. The game remains playable if a
 
 The AI controls the right paddle in 1 VS AI mode.
 
-## Requirements
+## Developer requirements
 
 - Java 17 or newer.
 - Maven 3.9+ to build locally.
@@ -63,20 +82,21 @@ Run it with:
 java -jar target/powerpong.jar
 ```
 
-On a desktop with Java `.jar` file association enabled, `powerpong.jar` can also be launched directly by double-clicking it. The GitHub Actions workflow builds separate standalone JAR artifacts for Windows x64, Linux x64, macOS Intel, and macOS Apple Silicon.
+The release workflow also uses `jpackage` to produce self-contained native application images with bundled runtimes for all four desktop targets.
 
 ## Project layout
 
 ```text
 src/main/java/com/mrcalzon/powerpong/
-  PowerPongApp.java    Swing application shell and screen navigation
-  MainMenuPanel.java   Mode selection
-  SettingsPanel.java   Pre-game configuration
-  GamePanel.java       Match simulation, rendering, AI, power-ups, and controls
-  AudioEngine.java     Optional LWJGL OpenAL generated audio
-  GameConfig.java      Immutable match settings and enums
-  GameMath.java        Shared collision/projection math
-  UiTheme.java         Neon UI components and starfield panels
+  PowerPongApp.java       Swing application shell and screen navigation
+  MainMenuPanel.java      Mode selection
+  SettingsPanel.java      Pre-game configuration
+  GamePanel.java          Match simulation, rendering, AI, power-ups, and controls
+  AudioEngine.java        Optional LWJGL OpenAL generated audio
+  GameConfig.java         Immutable match settings and enums
+  GameMath.java           Shared collision/projection math
+  UiTheme.java            Neon UI components and starfield panels
+  RenderSmokeCheck.java   Headless packaged-render verification
 ```
 
 ## Design notes
