@@ -1,0 +1,1 @@
+The opening ball now launches immediately from center in a randomized direction.
