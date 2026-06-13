@@ -1,0 +1,5 @@
+PowerPong is compiled for Java 17.
+
+Java 8, including jre-8u491-windows-x64, cannot launch PowerPong-Java17.jar.
+
+Use the self-contained Windows package and run PowerPong.exe instead. The package includes its own compatible Java runtime, so no separate Java installation is required.
