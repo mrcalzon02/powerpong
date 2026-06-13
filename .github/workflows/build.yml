@@ -42,6 +42,7 @@ jobs:
         run: mvn --batch-mode --no-transfer-progress clean package
 
       - name: Render gameplay smoke frame
+        shell: bash
         run: java -Djava.awt.headless=true -cp target/powerpong.jar com.mrcalzon.powerpong.RenderSmokeCheck
 
       - name: Name platform artifact
