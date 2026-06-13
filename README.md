@@ -17,11 +17,11 @@ The recommended desktop package includes its own Java runtime. Players do not ne
 
 After extracting the package:
 
-- **Windows:** open the `PowerPong` folder and run `PowerPong.exe`.
+- **Windows:** run the top-level `PowerPong.exe` or `START-POWERPONG.bat`.
 - **Linux:** run `PowerPong/bin/PowerPong`.
 - **macOS:** open `PowerPong.app`.
 
-Each package also includes `PowerPong-Java17.jar` for users who prefer the traditional JAR. The direct-download release is rebuilt automatically whenever verified changes reach `main`.
+The fallback JAR is named `PowerPong-Requires-Java17.jar`. It requires Java 17 or newer. **Java 8, including `jre-8u491-windows-x64`, cannot launch it.** The direct-download release is rebuilt automatically whenever verified changes reach `main`.
 
 ## Current gameplay
 
@@ -76,13 +76,13 @@ target/powerpong.jar
 
 Maven automatically selects the LWJGL native library for the current operating system and packages it into the shaded executable JAR.
 
-Run it with:
+Run it with a Java 17-or-newer runtime:
 
 ```bash
 java -jar target/powerpong.jar
 ```
 
-The release workflow also uses `jpackage` to produce self-contained native application images with bundled runtimes for all four desktop targets.
+A JAR can include the application dependencies and native libraries, but it does not contain the Java virtual machine itself. The release workflow therefore also uses `jpackage` to produce self-contained native application images with bundled runtimes for all four desktop targets.
 
 ## Project layout
 
