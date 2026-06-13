@@ -49,16 +49,23 @@ jobs:
         shell: bash
         run: |
           mkdir -p build/app-image build/release
+          platform_args=()
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            platform_args+=(--mac-package-identifier com.mrcalzon.powerpong)
+            platform_args+=(--mac-package-name PowerPong)
+          fi
           jpackage \
             --type app-image \
             --input target \
             --main-jar powerpong.jar \
             --main-class com.mrcalzon.powerpong.PowerPongApp \
             --name PowerPong \
-            --app-version 0.1.0 \
+            --app-version 1.0.0 \
             --vendor "PowerPong Project" \
             --description "Neon science-fiction power-up Pong" \
-            --dest build/app-image
+            --dest build/app-image \
+            --verbose \
+            "${platform_args[@]}"
 
       - name: Assemble Windows package
         if: runner.os == 'Windows'
