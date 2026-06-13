@@ -266,7 +266,8 @@ final class GamePanel extends JPanel {
             }
 
             for (Pickup pickup : pickups) {
-                if (!pickup.consumed && ball.lastHit != null && distanceSquared(ball.x, ball.y, pickup.x, pickup.y) <= square(ball.radius + pickup.radius)) {
+                if (!pickup.consumed && ball.lastHit != null
+                        && distanceSquared(ball.x, ball.y, pickup.x, pickup.y) <= square(ball.radius + pickup.radius)) {
                     pickup.consumed = true;
                     applyPowerUp(pickup.type, ball.lastHit, ball, additions);
                 }
@@ -313,7 +314,8 @@ final class GamePanel extends JPanel {
         if (speed > 0) {
             double minimumHorizontal = speed * 0.28;
             if (Math.abs(ball.vx) < minimumHorizontal) {
-                ball.vx = Math.copySign(minimumHorizontal, ball.vx == 0 ? (ball.lastHit == Side.RIGHT ? -1 : 1) : ball.vx);
+                ball.vx = Math.copySign(minimumHorizontal,
+                        ball.vx == 0 ? (ball.lastHit == Side.RIGHT ? -1 : 1) : ball.vx);
                 normalizeBall(ball, speed);
             }
         }
@@ -350,7 +352,8 @@ final class GamePanel extends JPanel {
         if (paddle.freezeCharges > 0) {
             paddle.freezeCharges--;
             ball.attachedTo = paddle.side;
-            ball.attachOffset = GameMath.clamp(ball.y - paddle.centerY(), -paddle.height * 0.42, paddle.height * 0.42);
+            ball.attachOffset = GameMath.clamp(ball.y - paddle.centerY(),
+                    -paddle.height * 0.42, paddle.height * 0.42);
             ball.releaseAt = gameTime + 0.78;
             ball.releaseSpeed = speed;
             ball.releaseAngle = angle;
@@ -363,7 +366,8 @@ final class GamePanel extends JPanel {
             normalizeBall(ball, speed);
         }
 
-        burst(ball.x, ball.y, powered ? new Color(178, 93, 255) : UiTheme.CYAN, powered ? 20 : 9, powered ? 230 : 130);
+        burst(ball.x, ball.y, powered ? new Color(178, 93, 255) : UiTheme.CYAN,
+                powered ? 20 : 9, powered ? 230 : 130);
     }
 
     private boolean overlapsPaddle(Ball ball, Paddle paddle) {
@@ -443,7 +447,6 @@ final class GamePanel extends JPanel {
                 Math.cos(angle) * BASE_BALL_SPEED * direction,
                 Math.sin(angle) * BASE_BALL_SPEED,
                 BALL_RADIUS);
-        ball.lastHit = toward.opposite();
         balls.add(ball);
         serveAt = Double.POSITIVE_INFINITY;
     }
@@ -611,7 +614,8 @@ final class GamePanel extends JPanel {
         glowLine(g, 0, ARENA_TOP, WIDTH, ARENA_TOP, UiTheme.BLUE);
         glowLine(g, 0, ARENA_BOTTOM, WIDTH, ARENA_BOTTOM, UiTheme.BLUE);
 
-        g.setStroke(new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 0, new float[]{10, 12}, 0));
+        g.setStroke(new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
+                10f, new float[]{10, 12}, 0));
         g.setColor(new Color(70, 199, 255, 95));
         g.drawLine(WIDTH / 2, (int) ARENA_TOP + 14, WIDTH / 2, (int) ARENA_BOTTOM - 14);
 
@@ -666,10 +670,12 @@ final class GamePanel extends JPanel {
         g.setStroke(new BasicStroke(8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
         g.setColor(new Color(62, 220, 255, 13));
         g.draw(path);
-        g.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, new float[]{6, 11}, 0));
+        g.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND,
+                10f, new float[]{6, 11}, 0));
         g.setColor(new Color(102, 225, 255, 34));
         g.draw(path);
-        g.setStroke(new BasicStroke(1f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, new float[]{4, 12}, 0));
+        g.setStroke(new BasicStroke(1f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND,
+                10f, new float[]{4, 12}, 0));
         g.setColor(new Color(190, 246, 255, 92));
         g.draw(path);
     }
@@ -738,7 +744,8 @@ final class GamePanel extends JPanel {
         g.setColor(new Color(207, 250, 255));
         g.fill(new Ellipse2D.Double(ball.x - core, ball.y - core, core * 2, core * 2));
         g.setColor(Color.WHITE);
-        g.fill(new Ellipse2D.Double(ball.x - core * 0.42, ball.y - core * 0.42, core * 0.84, core * 0.84));
+        g.fill(new Ellipse2D.Double(ball.x - core * 0.42, ball.y - core * 0.42,
+                core * 0.84, core * 0.84));
 
         if (ball.attachedTo != null) {
             g.setStroke(new BasicStroke(2f));
@@ -774,7 +781,9 @@ final class GamePanel extends JPanel {
             g.setFont(UiTheme.SMALL.deriveFont(Font.BOLD, 13f));
             FontMetrics fm = g.getFontMetrics();
             g.setColor(UiTheme.PALE);
-            g.drawString(abbreviation, (float) (pickup.x - fm.stringWidth(abbreviation) * 0.5), (float) (pickup.y + fm.getAscent() * 0.35));
+            g.drawString(abbreviation,
+                    (float) (pickup.x - fm.stringWidth(abbreviation) * 0.5),
+                    (float) (pickup.y + fm.getAscent() * 0.35));
         }
     }
 
@@ -809,8 +818,8 @@ final class GamePanel extends JPanel {
             double alphaFraction = GameMath.clamp(particle.life / 0.7, 0, 1);
             int alpha = (int) (alphaFraction * 190);
             g.setColor(new Color(particle.color.getRed(), particle.color.getGreen(), particle.color.getBlue(), alpha));
-            g.fill(new Ellipse2D.Double(particle.x - particle.size * 0.5, particle.y - particle.size * 0.5,
-                    particle.size, particle.size));
+            g.fill(new Ellipse2D.Double(particle.x - particle.size * 0.5,
+                    particle.y - particle.size * 0.5, particle.size, particle.size));
         }
     }
 
@@ -839,7 +848,7 @@ final class GamePanel extends JPanel {
             fm = g.getFontMetrics();
             int x = WIDTH / 2 - fm.stringWidth(statusText) / 2;
             g.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 45));
-            g.drawString(statusText, x + 2, 68 + 2);
+            g.drawString(statusText, x + 2, 70);
             g.setColor(color);
             g.drawString(statusText, x, 68);
         }
@@ -849,7 +858,9 @@ final class GamePanel extends JPanel {
         String controls = config.mode() == GameMode.ONE_PLAYER
                 ? "W/S MOVE    SPACE PAUSE    ESC MENU"
                 : "P-1 W/S    P-2 UP/DOWN    SPACE PAUSE    ESC MENU";
-        g.drawString(controls, WIDTH / 2 - g.getFontMetrics().stringWidth(controls) / 2, HEIGHT - 14);
+        g.drawString(controls,
+                WIDTH / 2 - g.getFontMetrics().stringWidth(controls) / 2,
+                HEIGHT - 14);
     }
 
     private void drawEffects(Graphics2D g, Paddle paddle, int x, int y, boolean alignRight) {
