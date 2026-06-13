@@ -1,0 +1,17 @@
+# Maven / Java
+/target/
+*.class
+*.log
+hs_err_pid*
+
+# IDEs
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+
+# Operating systems
+.DS_Store
+Thumbs.db
