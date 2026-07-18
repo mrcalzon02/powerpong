@@ -48,11 +48,14 @@ final class GamePanel extends JPanel {
     private static final double MAX_PADDLE_SPEED = 455;
     private static final double MAX_BOUNCE_ANGLE = Math.toRadians(63);
     private static final int MAX_BALLS = 7;
+    private static final long SERVE_RANDOM_SEED = 0x504F4E472026L;
+    private static final int[] SERVE_ANGLES_DEGREES = {-24, -18, -12, -6, 6, 12, 18, 24};
 
     private final GameConfig config;
     private final Runnable onExit;
     private final Timer timer;
     private final Random random = new Random();
+    private final Random serveRandom = new Random(SERVE_RANDOM_SEED);
     private final Paddle left = new Paddle(Side.LEFT, LEFT_PADDLE_X);
     private final Paddle right = new Paddle(Side.RIGHT, RIGHT_PADDLE_X);
     private final List<Ball> balls = new ArrayList<>();
@@ -72,7 +75,6 @@ final class GamePanel extends JPanel {
     private double gameTime;
     private double visualTime;
     private double nextPowerUpAt;
-    private double serveAt;
     private Side serveToward = Side.RIGHT;
     private String winnerText = "";
     private String statusText = "";
@@ -107,6 +109,10 @@ final class GamePanel extends JPanel {
         audio.close();
     }
 
+    int activeBallCountForTesting() {
+        return balls.size();
+    }
+
     private void resetMatch() {
         shuttingDown = false;
         paused = false;
@@ -120,9 +126,10 @@ final class GamePanel extends JPanel {
         particles.clear();
         left.reset();
         right.reset();
+        serveRandom.setSeed(SERVE_RANDOM_SEED);
         nextPowerUpAt = 6.0 + random.nextDouble() * 3.0;
-        serveToward = random.nextBoolean() ? Side.LEFT : Side.RIGHT;
-        spawnServe(serveToward);
+        serveToward = serveRandom.nextBoolean() ? Side.LEFT : Side.RIGHT;
+        ensureBallPresent();
     }
 
     private void createStars() {
@@ -144,6 +151,9 @@ final class GamePanel extends JPanel {
         } else {
             updateParticles(dt * 0.35);
         }
+        if (!gameOver) {
+            ensureBallPresent();
+        }
         repaint();
     }
 
@@ -157,10 +167,6 @@ final class GamePanel extends JPanel {
         if (!config.enabledPowerUps().isEmpty() && gameTime >= nextPowerUpAt) {
             spawnPowerUp();
             nextPowerUpAt = gameTime + 6.5 + random.nextDouble() * 5.5;
-        }
-
-        if (balls.isEmpty() && !gameOver && gameTime >= serveAt) {
-            spawnServe(serveToward);
         }
     }
 
@@ -279,9 +285,7 @@ final class GamePanel extends JPanel {
             balls.addAll(additions.subList(0, Math.min(capacity, additions.size())));
         }
 
-        if (balls.isEmpty() && !gameOver && serveAt < gameTime) {
-            serveAt = gameTime + 0.9;
-        }
+        ensureBallPresent();
     }
 
     private void updateAttachedBall(Ball ball) {
@@ -377,7 +381,6 @@ final class GamePanel extends JPanel {
     private void loseLife(Paddle loser, Side missedSide, double y) {
         loser.lives--;
         serveToward = missedSide;
-        serveAt = gameTime + 0.95;
         audio.play(Sound.SCORE);
         burst(missedSide == Side.LEFT ? 8 : WIDTH - 8, y, new Color(255, 76, 132), 28, 260);
         status(missedSide, "LIFE LOST", 1.1);
@@ -440,15 +443,26 @@ final class GamePanel extends JPanel {
         }
     }
 
+    private void ensureBallPresent() {
+        if (!gameOver && balls.isEmpty()) {
+            spawnServe(serveToward);
+        }
+    }
+
     private void spawnServe(Side toward) {
-        double angle = Math.toRadians(-24 + random.nextDouble() * 48);
+        int angleDegrees = SERVE_ANGLES_DEGREES[serveRandom.nextInt(SERVE_ANGLES_DEGREES.length)];
+        double angle = Math.toRadians(angleDegrees);
         double direction = toward == Side.RIGHT ? 1.0 : -1.0;
-        Ball ball = new Ball(WIDTH * 0.5, (ARENA_TOP + ARENA_BOTTOM) * 0.5,
-                Math.cos(angle) * BASE_BALL_SPEED * direction,
-                Math.sin(angle) * BASE_BALL_SPEED,
-                BALL_RADIUS);
-        balls.add(ball);
-        serveAt = Double.POSITIVE_INFINITY;
+        double vx = Math.cos(angle) * BASE_BALL_SPEED * direction;
+        double vy = Math.sin(angle) * BASE_BALL_SPEED;
+
+        if (!Double.isFinite(vx) || !Double.isFinite(vy)
+                || Math.abs(vx) < BASE_BALL_SPEED * 0.85) {
+            throw new IllegalStateException("Invalid deterministic serve vector");
+        }
+
+        balls.add(new Ball(WIDTH * 0.5, (ARENA_TOP + ARENA_BOTTOM) * 0.5,
+                vx, vy, BALL_RADIUS));
     }
 
     private double currentPaddleSpeed() {
@@ -890,9 +904,7 @@ final class GamePanel extends JPanel {
     private void drawOverlay(Graphics2D g) {
         if (!paused && !gameOver) {
             if (balls.isEmpty()) {
-                double remaining = Math.max(0, serveAt - gameTime);
-                int count = Math.max(1, (int) Math.ceil(remaining));
-                drawCenteredOverlay(g, "SERVE " + count, "VECTOR LOCK ACQUIRING");
+                drawCenteredOverlay(g, "BALL RESTORING", "DETERMINISTIC SERVE RECOVERY");
             }
             return;
         }
