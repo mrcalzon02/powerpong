@@ -26,6 +26,10 @@ public final class RenderSmokeCheck {
                 panel.setSize(1280, 720);
                 panel.begin();
 
+                if (panel.activeBallCountForTesting() < 1) {
+                    throw new IllegalStateException("No active ball exists after match initialization");
+                }
+
                 BufferedImage frame = new BufferedImage(1280, 720, BufferedImage.TYPE_INT_ARGB);
                 Graphics2D graphics = frame.createGraphics();
                 try {
@@ -49,7 +53,7 @@ public final class RenderSmokeCheck {
                     }
                 }
                 if (centerBallSamples < 20) {
-                    throw new IllegalStateException("No visible ball was rendered at match start");
+                    throw new IllegalStateException("An active ball exists but was not visibly rendered at match start");
                 }
 
                 int illuminatedSamples = 0;
