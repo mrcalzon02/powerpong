@@ -62,6 +62,14 @@ The AI controls the right paddle in 1 VS AI mode.
 
 No external art, sound, or data files are required. Graphics and audio tones are generated in code.
 
+## Verify ball and boundary physics
+
+```bash
+mvn test
+```
+
+The regression suite verifies deterministic opening serves, the active-ball invariant, reflection from the top and bottom walls, returns from both paddles, and scoring through both goal boundaries. The packaging workflow runs these tests on Windows, Linux, Intel macOS, and Apple Silicon macOS and preserves the Surefire reports for diagnosis.
+
 ## Build a self-contained JAR
 
 ```bash
@@ -97,6 +105,8 @@ src/main/java/com/mrcalzon/powerpong/
   GameMath.java           Shared collision/projection math
   UiTheme.java            Neon UI components and starfield panels
   RenderSmokeCheck.java   Headless packaged-render verification
+src/test/java/com/mrcalzon/powerpong/
+  GamePanelPhysicsTest.java  Deterministic wall, paddle, goal, and ball-invariant tests
 ```
 
 ## Design notes
