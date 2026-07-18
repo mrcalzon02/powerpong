@@ -38,8 +38,17 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Build executable JAR
+      - name: Build executable JAR and run regression tests
         run: mvn --batch-mode --no-transfer-progress clean package
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: PowerPong-test-reports-${{ matrix.label }}
+          path: target/surefire-reports/**
+          if-no-files-found: ignore
+          retention-days: 30
 
       - name: Verify packaged renderer
         shell: bash
