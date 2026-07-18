@@ -312,9 +312,23 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
+          assets=(
+            release-assets/PowerPong-Windows-x64.zip
+            release-assets/PowerPong-Linux-x64.tar.gz
+            release-assets/PowerPong-macOS-x64.zip
+            release-assets/PowerPong-macOS-arm64.zip
+          )
+
+          for asset in "${assets[@]}"; do
+            if [[ ! -f "$asset" ]]; then
+              echo "Required release asset is missing: $asset" >&2
+              exit 1
+            fi
+          done
+
           gh release delete powerpong-desktop-latest --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes || true
           gh release create powerpong-desktop-latest \
-            release-assets/* \
+            "${assets[@]}" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "PowerPong Desktop Builds" \
