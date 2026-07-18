@@ -8,10 +8,114 @@ on:
 
 permissions:
   contents: write
+  issues: write
+
+concurrency:
+  group: powerpong-release-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  verify:
+    name: Compile, test, and smoke-test packaged JAR
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build and verify
+        id: verification
+        shell: bash
+        run: |
+          set +e
+
+          mvn --batch-mode --no-transfer-progress clean package 2>&1 | tee build.log
+          build_status=${PIPESTATUS[0]}
+
+          smoke_status=99
+          if [[ "$build_status" -eq 0 ]]; then
+            java -Djava.awt.headless=true -cp target/powerpong.jar com.mrcalzon.powerpong.RenderSmokeCheck 2>&1 | tee smoke-test.log
+            smoke_status=${PIPESTATUS[0]}
+          else
+            echo "Smoke test skipped because Maven compilation, tests, or packaging failed." | tee smoke-test.log
+          fi
+
+          if [[ "$build_status" -eq 0 && "$smoke_status" -eq 0 ]]; then
+            overall=success
+            exit_status=0
+          else
+            overall=failure
+            exit_status=1
+          fi
+
+          echo "build_status=$build_status" >> "$GITHUB_OUTPUT"
+          echo "smoke_status=$smoke_status" >> "$GITHUB_OUTPUT"
+          echo "overall=$overall" >> "$GITHUB_OUTPUT"
+          exit "$exit_status"
+
+      - name: Write verification report
+        if: always()
+        shell: bash
+        env:
+          BUILD_STATUS: ${{ steps.verification.outputs.build_status }}
+          SMOKE_STATUS: ${{ steps.verification.outputs.smoke_status }}
+          OVERALL_STATUS: ${{ steps.verification.outputs.overall }}
+        run: |
+          build_status="${BUILD_STATUS:-unavailable}"
+          smoke_status="${SMOKE_STATUS:-unavailable}"
+          overall_status="${OVERALL_STATUS:-failure}"
+
+          if [[ "$overall_status" == "success" ]]; then
+            marker="✅"
+          else
+            marker="❌"
+          fi
+
+          cat > verification-report.md <<EOF
+          ## ${marker} PowerPong release verification
+
+          - **Commit:** \`${GITHUB_SHA}\`
+          - **Branch/ref:** \`${GITHUB_REF}\`
+          - **Event:** \`${GITHUB_EVENT_NAME}\`
+          - **Maven compile, tests, and JAR package exit code:** \`${build_status}\`
+          - **Packaged-JAR smoke-test exit code:** \`${smoke_status}\`
+          - **Overall:** **${overall_status}**
+          - **Workflow run:** ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+
+          The attached workflow artifact contains \`build.log\`, \`smoke-test.log\`, and any Maven Surefire reports produced by this run.
+          EOF
+
+      - name: Publish verification report to issue 4
+        if: always() && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: gh issue comment 4 --repo "$GITHUB_REPOSITORY" --body-file verification-report.md
+
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: PowerPong-verification-${{ github.run_id }}
+          path: |
+            build.log
+            smoke-test.log
+            verification-report.md
+            target/surefire-reports/**
+          if-no-files-found: warn
+          retention-days: 30
+
   package:
     name: Package ${{ matrix.label }}
+    needs: verify
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -38,19 +142,10 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Build executable JAR and run regression tests
-        run: mvn --batch-mode --no-transfer-progress clean package
+      - name: Build executable JAR
+        run: mvn --batch-mode --no-transfer-progress -DskipTests clean package
 
-      - name: Upload test reports
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: PowerPong-test-reports-${{ matrix.label }}
-          path: target/surefire-reports/**
-          if-no-files-found: ignore
-          retention-days: 30
-
-      - name: Verify packaged renderer
+      - name: Verify packaged renderer on target platform
         shell: bash
         run: java -Djava.awt.headless=true -cp target/powerpong.jar com.mrcalzon.powerpong.RenderSmokeCheck
 
